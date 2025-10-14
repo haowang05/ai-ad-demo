@@ -11,7 +11,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 // 预设的广告类别
 const AD_CATEGORIES = [
   "Art & Entertainment", "Automobile", "Business & Finance", "Career", "Education", "Family & parenting",
-  "Food & Beverage", "Health & Fitness", "Hobbies & Interests", "Home & Gardening", "Legal, Government & Politics","News", "Personal Finance", "Pet", "Real Estate", "Science", "Shopping", "Society","Sports", "Style & Fashion", "Technology & Computing", "Travel", "Weather"
+  "Food & Beverage", "Health & Fitness", "Hobbies & Interests", "Home & Gardening", "Legal, Government & Politics","News", "Personal Finance", "Pet", "Real Estate", "Science", "Shopping", "Society", "Sports", "Style & Fashion", "Technology & Computing", "Travel", "Weather"
 ];
 
 // 封装 LLM 调用逻辑
@@ -82,7 +82,7 @@ app.post("/api/get-ad", async (req, res) => {
             userInfoForPrompt = `来自 ${location} 的` + userInfoForPrompt;
         }
 
-        const adPrompt = `请为${userInfoForPrompt}，生成一条关于“${category}”的广告语。第一句是广告语，第二句是具有引导/转化性质的具体内容，旨在引导用户进行下一步行动比如：购买、下载、注册、访问等等。要求：现代、有吸引力，80词左右的英文。仅显示广告主体本身。不要显示Prompt中的无关信息`;
+        const adPrompt = `请为${userInfoForPrompt}，生成一条关于“${category}”的广告语。第一句是广告语，第二句是具有引导/转化性质的具体内容，旨在引导用户进行下一步行动比如：购买、下载、注册、访问等等。要求：现代、有吸引力，30词左右的英文。仅显示广告主体本身。不要显示Prompt中的无关信息`;
         const adContent = await callLLM(adPrompt);
 
         res.json({ ad: adContent || `探索${category}的无限可能！` });
