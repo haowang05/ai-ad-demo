@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // --- Stages & Elements ---
+    // --- 阶段与元素获取 ---
     const stages = {
         agree: document.getElementById('agree-stage'),
         main: document.getElementById('main-stage'),
@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const countdownText = document.getElementById('countdown-text');
     const retryButton = document.getElementById('retryButton');
     
-    // --- Info Display Elements ---
+    // --- 信息显示元素 ---
     const genderBox = document.getElementById('gender-box');
     const ageBox = document.getElementById('age-box');
     const locationBox = document.getElementById('location-box');
@@ -22,60 +22,60 @@ document.addEventListener('DOMContentLoaded', () => {
     
     let modelsLoaded = false;
     let detectionInterval = null;
-    let locationInfo = { city: 'Fetching', country: 'Location...' };
+    let locationInfo = { city: '获取中', country: '地区...' };
 
-    // --- Initialization ---
+    // --- 初始化 ---
     function initialize() {
         stages.agree.classList.add('active');
         stages.main.classList.remove('active');
         loadModels();
     }
 
-    // --- Model Loading ---
+    // --- 模型加载 ---
     async function loadModels() {
         try {
-            updateInfoBox(locationBox, 'Loading AI models...');
+            updateInfoBox(locationBox, '正在加载AI模型...');
             await Promise.all([
                 faceapi.nets.tinyFaceDetector.loadFromUri('/models'),
                 faceapi.nets.faceLandmark68TinyNet.loadFromUri('/models'),
                 faceapi.nets.ageGenderNet.loadFromUri('/models'),
             ]);
             modelsLoaded = true;
-            updateInfoBox(locationBox, 'Models loaded successfully');
-            fetchLocation(); // Fetch location after models are loaded
+            updateInfoBox(locationBox, '模型加载成功');
+            fetchLocation(); // 模型加载后获取地理位置
         } catch (error) {
-            console.error("Failed to load models:", error);
-            updateInfoBox(locationBox, 'Failed to load models', true);
+            console.error("模型加载失败:", error);
+            updateInfoBox(locationBox, '模型加载失败', true);
         }
     }
 
-    // --- Location Fetching ---
+    // --- 地理位置获取 ---
     async function fetchLocation() {
         try {
-            updateInfoBox(locationBox, 'Fetching location...');
+            updateInfoBox(locationBox, '正在获取地理位置...');
             const response = await fetch('/api/location');
-            if (!response.ok) throw new Error('Network response was not ok');
+            if (!response.ok) throw new Error('网络响应错误');
             const data = await response.json();
             locationInfo = data;
             updateInfoBox(locationBox, `${data.country}, ${data.city}`);
         } catch (error) {
-            console.error('Failed to fetch location:', error);
-            updateInfoBox(locationBox, 'Location fetch failed', true);
-            locationInfo = { city: 'Unknown', country: 'Unknown' };
+            console.error('获取地理位置失败:', error);
+            updateInfoBox(locationBox, '位置获取失败', true);
+            locationInfo = { city: '未知', country: '未知' };
         }
     }
 
-    // --- Start after user agrees ---
+    // --- 用户同意后启动 ---
     agreeButton.addEventListener('click', () => {
         stages.agree.classList.remove('active');
         stages.main.classList.add('active');
         startCameraAndDetection();
     });
 
-    // --- Camera & Detection Logic ---
+    // --- 摄像头与识别逻辑 ---
     async function startCameraAndDetection() {
         if (!modelsLoaded) {
-            alert('AI models are not loaded yet, please wait...');
+            alert('AI模型尚未加载完成，请稍候...');
             return;
         }
         resetUI();
@@ -86,8 +86,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const stream = await navigator.mediaDevices.getUserMedia({ video: {} });
             video.srcObject = stream;
         } catch (err) {
-            console.error("Failed to access camera:", err);
-            alert('Could not access the camera. Please check permissions.');
+            console.error("无法访问摄像头:", err);
+            alert('无法访问摄像头，请检查权限设置。');
         }
 
         detectionInterval = setInterval(async () => {
@@ -100,11 +100,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 500);
     }
 
-    // --- Countdown Logic ---
+    // --- 倒计时逻辑 ---
     function startCountdown(detectionData) {
         let count = 3;
         countdownOverlay.style.display = 'flex';
-        countdownText.textContent = `Get Ready! ${count}`;
+        countdownText.textContent = `准备！${count}`;
         const countdownInterval = setInterval(() => {
             count--;
             if (count > 0) {
@@ -117,9 +117,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 1000);
     }
 
-    // --- Process Data and Call APIs ---
+    // --- 处理数据并调用API ---
     async function processUserData(detection) {
-        // 1. Take snapshot and stop video stream
+        // 1. 截取快照并停止视频流
         const snapshotCanvas = document.createElement('canvas');
         snapshotCanvas.width = video.videoWidth;
         snapshotCanvas.height = video.videoHeight;
@@ -131,47 +131,47 @@ document.addEventListener('DOMContentLoaded', () => {
             video.srcObject.getTracks().forEach(track => track.stop());
         }
 
-        // 2. Update basic info
-        const gender = detection.gender === 'male' ? 'Male' : 'Female';
+        // 2. 更新基本信息
+        const gender = detection.gender === 'male' ? '男性' : '女性';
         const age = Math.round(detection.age);
         updateInfoBox(genderBox, gender);
-        updateInfoBox(ageBox, `Around ${age} years old`);
+        updateInfoBox(ageBox, `约 ${age} 岁`);
         
         const userData = { gender, age, location: `${locationInfo.country}, ${locationInfo.city}` };
 
         try {
-            // 3. Get ad category
-            updateInfoBox(categoryBox, 'Analyzing category...');
+            // 3. 获取广告类别
+            updateInfoBox(categoryBox, '正在分析类别...');
             const categoryResponse = await fetch('/api/get-category', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(userData),
             });
-            if (!categoryResponse.ok) throw new Error('Failed to get category');
+            if (!categoryResponse.ok) throw new Error('获取类别失败');
             const { category } = await categoryResponse.json();
             updateInfoBox(categoryBox, category);
 
-            // 4. Get ad content
-            updateInfoBox(adBox, 'Generating content...');
+            // 4. 获取广告内容
+            updateInfoBox(adBox, '正在生成内容...');
             const adResponse = await fetch('/api/get-ad', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ ...userData, category }),
             });
-            if (!adResponse.ok) throw new Error('Failed to get ad');
+            if (!adResponse.ok) throw new Error('获取广告失败');
             const { ad } = await adResponse.json();
             updateInfoBox(adBox, ad);
 
         } catch (error) {
-            console.error("API call failed:", error);
-            updateInfoBox(categoryBox, "Analysis failed", true);
-            updateInfoBox(adBox, "Generation failed", true);
+            console.error("API调用失败:", error);
+            updateInfoBox(categoryBox, "分析失败", true);
+            updateInfoBox(adBox, "生成失败", true);
         } finally {
             retryButton.style.display = 'block';
         }
     }
     
-    // --- UI Update & Reset ---
+    // --- UI 更新与重置 ---
     function updateInfoBox(element, text, isError = false) {
         element.textContent = text;
         if (isError) element.classList.add('error');
@@ -185,10 +185,9 @@ document.addEventListener('DOMContentLoaded', () => {
         fetchLocation();
     }
 
-    // --- Retry Button ---
+    // --- 重试按钮 ---
     retryButton.addEventListener('click', startCameraAndDetection);
 
-    // --- Initialize Page ---
+    // --- 初始化页面 ---
     initialize();
 });
-
