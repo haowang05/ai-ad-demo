@@ -5,20 +5,17 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// --- 关键更新 ---
-// 告诉 Express 我们部署在代理服务器后面，请信任 X-Forwarded-For 请求头。
-// '1' 表示信任一层代理，这对于 Render, Heroku 等平台是标准配置。
 app.set('trust proxy', 1);
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// (API 和 LLM 调用部分无需修改，保持原样)
+// English ad categories
 const AD_CATEGORIES = [
-  "艺术与娱乐", "汽车", "商业与金融", "职业", "教育", "家庭与育儿",
-  "食品与饮料", "健康与健身", "爱好与兴趣", "家居与园艺", "法律、政府与政治",
-  "新闻", "个人理财", "宠物", "房地产", "科学", "购物", "社会",
-  "体育", "风格与时尚", "技术与计算", "旅游", "天气"
+    "Arts & Entertainment", "Automotive", "Business & Finance", "Careers", "Education", "Family & Parenting",
+    "Food & Drink", "Health & Fitness", "Hobbies & Interests", "Home & Garden", "Law, Gov’t & Politics",
+    "News", "Personal Finance", "Pets", "Real Estate", "Science", "Shopping", "Society",
+    "Sports", "Style & Fashion", "Technology & Computing", "Travel", "Weather"
 ];
 
 async function callLLM(prompt) {
@@ -56,14 +53,14 @@ app.post("/api/get-category", async (req, res) => {
             return res.status(400).json({ error: "Request is missing gender or age." });
         }
 
-        let userInfoForPrompt = `a ${gender}, around ${age} years old`;
+        let userInfoForPrompt = `a ${gender.toLowerCase()}, around ${age} years old`;
         if (location) {
             userInfoForPrompt += ` from ${location}`;
         }
 
         const categoryPrompt = `For ${userInfoForPrompt}, pick the most relevant ad category from this list: [${AD_CATEGORIES.join(", ")}]. Return only the category name.`;
         let selectedCategory = await callLLM(categoryPrompt);
-        selectedCategory = AD_CATEGORIES.find(c => selectedCategory.includes(c)) || "购物";
+        selectedCategory = AD_CATEGORIES.find(c => selectedCategory.includes(c)) || "Shopping";
 
         res.json({ category: selectedCategory });
 
@@ -80,7 +77,7 @@ app.post("/api/get-ad", async (req, res) => {
             return res.status(400).json({ error: "Request is missing gender, age, or category." });
         }
 
-        let userInfoForPrompt = `a ${gender}, around ${age} years old`;
+        let userInfoForPrompt = `a ${gender.toLowerCase()}, around ${age} years old`;
         if (location) {
             userInfoForPrompt += ` from ${location}`;
         }
@@ -96,42 +93,23 @@ app.post("/api/get-ad", async (req, res) => {
     }
 });
 
-
-// --- IP 地址识别 API (已更新并增加日志) ---
 app.get("/api/location", async (req, res) => {
     try {
-        // --- 新增的调试日志 ---
-        console.log("--- New Location Request ---");
-        console.log("Timestamp:", new Date().toISOString());
-        console.log("Request Headers:", JSON.stringify(req.headers, null, 2));
-        console.log("Value of req.ip (what Express sees):", req.ip);
-        console.log("Value of req.ips (proxy chain):", req.ips);
-        console.log("Raw x-forwarded-for header:", req.headers['x-forwarded-for']);
-        console.log("--------------------------");
-        // --- 日志结束 ---
-
-        // 在设置 `trust proxy` 后, `req.ip` 会自动返回真实的客户端 IP 地址
         const ip = req.ip;
 
-        // 本地开发环境的判断依然保留
         if (!ip || ip === "::1" || ip === "127.0.0.1") {
-             console.log("Detected local environment. Returning default location.");
-             return res.json({ city: '开发环境', country: '本地网络' });
+             return res.json({ city: 'Development', country: 'Local Network' });
         }
 
-        console.log(`Fetching location for IP: ${ip}`);
         const response = await fetch(`http://ip-api.com/json/${ip}`);
         const data = await response.json();
         
-        console.log("Response from ip-api.com:", data);
-
         if (data.status === 'success') {
             res.json({ 
                 city: data.city || 'Unknown City', 
                 country: data.country || 'Unknown Country' 
             });
         } else {
-            // 如果 API 查询失败，也返回一个明确的信息
             res.json({ city: 'Unknown', country: 'Location' });
         }
     } catch (error) {
@@ -139,7 +117,6 @@ app.get("/api/location", async (req, res) => {
         res.status(500).json({ city: 'Error', country: 'Failed to fetch' });
     }
 });
-
 
 app.listen(PORT, () => {
   console.log(`Server is running at http://localhost:${PORT}`);
