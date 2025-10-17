@@ -97,20 +97,34 @@ app.post("/api/get-ad", async (req, res) => {
 });
 
 
-// --- IP 地址识别 API (已更新) ---
+// --- IP 地址识别 API (已更新并增加日志) ---
 app.get("/api/location", async (req, res) => {
     try {
+        // --- 新增的调试日志 ---
+        console.log("--- New Location Request ---");
+        console.log("Timestamp:", new Date().toISOString());
+        console.log("Request Headers:", JSON.stringify(req.headers, null, 2));
+        console.log("Value of req.ip (what Express sees):", req.ip);
+        console.log("Value of req.ips (proxy chain):", req.ips);
+        console.log("Raw x-forwarded-for header:", req.headers['x-forwarded-for']);
+        console.log("--------------------------");
+        // --- 日志结束 ---
+
         // 在设置 `trust proxy` 后, `req.ip` 会自动返回真实的客户端 IP 地址
         const ip = req.ip;
 
         // 本地开发环境的判断依然保留
         if (!ip || ip === "::1" || ip === "127.0.0.1") {
+             console.log("Detected local environment. Returning default location.");
              return res.json({ city: '开发环境', country: '本地网络' });
         }
 
+        console.log(`Fetching location for IP: ${ip}`);
         const response = await fetch(`http://ip-api.com/json/${ip}`);
         const data = await response.json();
         
+        console.log("Response from ip-api.com:", data);
+
         if (data.status === 'success') {
             res.json({ 
                 city: data.city || 'Unknown City', 
